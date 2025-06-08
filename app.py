@@ -1,52 +1,38 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import sqlite3
+from typing import Optional, List
 
 app = FastAPI()
 
-# MODEL DANYCH
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class LogEntry(BaseModel):
     pracownik: str
+    data: str
     start: str
     koniec: str
-    bezczynność: str
-    lokalizacja: str
+    czas_pracy: Optional[str] = None
+    bezczynnosc: Optional[str] = None
+    bezczynnosc_5min: Optional[str] = None
+    start_przerwy: Optional[str] = None
+    koniec_przerwy: Optional[str] = None
+    czas_przerwy: Optional[str] = None
+    lokalizacja: Optional[str] = None
 
-# TWORZENIE BAZY DANYCH, jeśli nie istnieje
-def init_db():
-    conn = sqlite3.connect("logs.db")
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS logs (
-            pracownik TEXT,
-            start TEXT,
-            koniec TEXT,
-            bezczynność TEXT,
-            lokalizacja TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+log_storage: List[LogEntry] = []
 
-init_db()
-
-# ENDPOINT: Dodanie logu
 @app.post("/log")
 def add_log(entry: LogEntry):
-    conn = sqlite3.connect("logs.db")
-    c = conn.cursor()
-    c.execute("INSERT INTO logs VALUES (?, ?, ?, ?, ?)", 
-              (entry.pracownik, entry.start, entry.koniec, entry.bezczynność, entry.lokalizacja))
-    conn.commit()
-    conn.close()
-    return {"status": "OK"}
+    log_storage.append(entry)
+    return {"status": "ok"}
 
-# ENDPOINT: Pobierz wszystkie logi
 @app.get("/logs")
 def get_logs():
-    conn = sqlite3.connect("logs.db")
-    c = conn.cursor()
-    c.execute("SELECT * FROM logs")
-    rows = c.fetchall()
-    conn.close()
-    return {"dane": rows}
+    return {"dane": [entry.dict() for entry in log_storage]}
