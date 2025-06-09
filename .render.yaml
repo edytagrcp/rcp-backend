@@ -3,8 +3,7 @@ services:
     name: rcp-backend
     env: python
     buildCommand: ""
-    startCommand: uvicorn app:app --host 0.0.0.0 --port 10000
-    plan: free
+    startCommand: "python app.py"
     envVars:
       - key: PORT
         value: 10000
